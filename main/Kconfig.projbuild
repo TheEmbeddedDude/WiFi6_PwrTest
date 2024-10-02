@@ -1,0 +1,462 @@
+menu "App Configuration"
+
+    menu "Board_Config"
+        menu "GPIO configuration"    
+            config APP_PERIPH_PWR_PIN
+                int "I2C sensor power enable/disable pin Number"
+                default 1
+                help
+                    GPIO number for power enable/disable of I2C sensors
+        endmenu
+        menu "I2C configuration"    
+            config APP_I2C_MASTER_SCL_PIN
+                int "SCL GPIO Number"
+                default 19                
+                help
+                    GPIO number for I2C Master clock line.
+        
+            config APP_I2C_MASTER_SDA_PIN
+                int "SDA GPIO Number"
+                default 18                
+                help
+                    GPIO number for I2C Master data line.
+        
+            config APP_I2C_CLOCK_HZ
+                int "I2C clock frequency, Hz"
+                default 100000
+                help
+                    Set the general I2C bus frequency to the lowest supported frequency of all sensors.
+
+        endmenu
+    endmenu
+
+    menu "Power Test Configuration"
+
+        choice APP_PWR_SAVE_METHOD
+            prompt "Application power saving method"
+            default APP_DEEP_SLEEP
+            help
+                Select which power saving method to use when application is idle in between reporting intervlas. Note that iTWT can only be selected if PM is selected
+    
+            config APP_AUTO_LIGHT_SLEEP
+                bool "Auto Light Sleep"
+                depends on PM_ENABLE
+            config APP_DEEP_SLEEP
+                bool "Deep Sleep"                   
+            config APP_DEEP_SLEEP_ESP_NOW
+                bool "Deep Sleep with ESP-NOW. Not MQTT"
+            config APP_LIGHT_SLEEP_ESP_NOW
+                bool "Light Sleep with ESP-NOW. Not MQTT"
+        endchoice
+        config APP_REPORTING_INTERVAL_SEC
+            int "App reporting interval in seconds"
+            range 0 4294967295
+            default 600            
+            help
+                The interval for reporting sensor data. In between reporting intervals the applicatoin uses one of the sleceted power saving methods. Note: When using iTWT the reporting time is calculated using the mantissa and exponent.
+
+        choice APP_WIFI_POWER_SAVE_MODE
+            prompt "Wi-Fi Power save mode"             
+            default APP_WIFI_POWER_SAVE_NONE
+            help
+                Set Wi-Fi power save mode from enum wifi_ps_type_t.
+
+                Minimum modem power saving: In this mode, station wakes up to receive beacon every DTIM period.
+                
+                Maximum modem power saving: In this mode, interval to receive beacons is determined by the listen_interval parameter in wifi_sta_config_t.
+            config APP_WIFI_POWER_SAVE_NONE
+                bool "No power saving enabled"
+            config APP_WIFI_POWER_SAVE_MIN
+                bool "Minimum modem power saving"                
+            config APP_WIFI_POWER_SAVE_MAX
+                bool "Maximum modem power saving"     
+        endchoice        
+
+        choice APP_MAX_CPU_FREQ
+            prompt "Maximum CPU frequency"
+            default APP_MAX_CPU_FREQ_80
+            depends on PM_ENABLE
+            help
+                Maximum CPU frequency to use for dynamic frequency scaling.
+    
+            config APP_MAX_CPU_FREQ_80
+                bool "80 MHz"
+            config APP_MAX_CPU_FREQ_120
+                bool "120 MHz"
+                depends on IDF_TARGET_ESP32C2
+            config APP_MAX_CPU_FREQ_160
+                bool "160 MHz"
+                depends on !IDF_TARGET_ESP32C2
+            config APP_MAX_CPU_FREQ_240
+                bool "240 MHz"
+                depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+        endchoice
+    
+        config APP_MAX_CPU_FREQ_MHZ
+            int
+            default 80 if APP_MAX_CPU_FREQ_80
+            default 120 if APP_MAX_CPU_FREQ_120
+            default 160 if APP_MAX_CPU_FREQ_160
+            default 240 if APP_MAX_CPU_FREQ_240
+    
+        choice APP_MIN_CPU_FREQ
+            prompt "Minimum CPU frequency"
+            default APP_MIN_CPU_FREQ_10M
+            depends on PM_ENABLE
+            help
+                Minimum CPU frequency to use for dynamic frequency scaling.
+                Should be set to XTAL frequency or XTAL frequency divided by integer.
+    
+            config APP_MIN_CPU_FREQ_40M
+                bool "40 MHz (use with 40MHz XTAL)"
+                depends on XTAL_FREQ_40 || XTAL_FREQ_AUTO
+            config APP_MIN_CPU_FREQ_20M
+                bool "20 MHz (use with 40MHz XTAL)"
+                depends on XTAL_FREQ_40 || XTAL_FREQ_AUTO
+            config APP_MIN_CPU_FREQ_10M
+                bool "10 MHz (use with 40MHz XTAL)"
+                depends on XTAL_FREQ_40 || XTAL_FREQ_AUTO
+            config APP_MIN_CPU_FREQ_26M
+                bool "26 MHz (use with 26MHz XTAL)"
+                depends on XTAL_FREQ_26 || XTAL_FREQ_AUTO
+            config APP_MIN_CPU_FREQ_13M
+                bool "13 MHz (use with 26MHz XTAL)"
+                depends on XTAL_FREQ_26 || XTAL_FREQ_AUTO
+        endchoice
+    
+        config APP_MIN_CPU_FREQ_MHZ
+            int
+            default 40 if APP_MIN_CPU_FREQ_40M
+            default 20 if APP_MIN_CPU_FREQ_20M
+            default 10 if APP_MIN_CPU_FREQ_10M
+            default 26 if APP_MIN_CPU_FREQ_26M
+            default 13 if APP_MIN_CPU_FREQ_13M
+    endmenu
+
+    menu "Wi-Fi Configuration"
+        config APP_WIFI_SSID
+            string "WiFi SSID"
+            default "MY_WIFI_NETWORK"
+            help
+                SSID (network name) for the app to connect to.       
+        
+        config APP_WIFI_PASSWORD
+            string "WiFi Password"
+            default "mypassword"
+            help
+                WiFi password (WPA or WPA2) for the example to use.
+        
+        config APP_WIFI_CONN_MAX_RETRY
+            int "Maximum retry"
+            default 6
+            help
+                Set the Maximum retry to avoid station reconnecting to the AP unlimited,
+                in case the AP is really inexistent.
+
+        choice APP_WIFI_SCAN_METHOD
+            prompt "WiFi Scan Method"
+            default APP_WIFI_SCAN_METHOD_ALL_CHANNEL
+            help
+                WiFi scan method:
+        
+                If "Fast" is selected, scan will end after find SSID match AP.
+        
+                If "All Channel" is selected, scan will end after scan all the channel.
+        
+            config APP_WIFI_SCAN_METHOD_FAST
+                bool "Fast"
+            config APP_WIFI_SCAN_METHOD_ALL_CHANNEL
+                bool "All Channel"
+        endchoice
+
+        menu "WiFi Scan threshold"
+            config APP_WIFI_SCAN_RSSI_THRESHOLD
+                int "WiFi minimum rssi"
+                range -127 0
+	    
+                default -127
+                help
+                    The minimum rssi to accept in the scan mode.
+	    
+            choice APP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+                prompt "WiFi Scan auth mode threshold"
+                default APP_WIFI_AUTH_OPEN
+                help
+                    The weakest authmode to accept in the scan mode.
+	    
+                config APP_WIFI_AUTH_OPEN
+                    bool "OPEN"
+                config APP_WIFI_AUTH_WEP
+                    bool "WEP"
+                config APP_WIFI_AUTH_WPA_PSK
+                    bool "WPA PSK"
+                config APP_WIFI_AUTH_WPA2_PSK
+                    bool "WPA2 PSK"
+                config APP_WIFI_AUTH_WPA_WPA2_PSK
+                    bool "WPA WPA2 PSK"
+                config APP_WIFI_AUTH_WPA2_ENTERPRISE
+                    bool "WPA2 ENTERPRISE"
+                config APP_WIFI_AUTH_WPA3_PSK
+                    bool "WPA3 PSK"
+                config APP_WIFI_AUTH_WPA2_WPA3_PSK
+                    bool "WPA2 WPA3 PSK"
+                config APP_WIFI_AUTH_WAPI_PSK
+                    bool "WAPI PSK"
+            endchoice
+        endmenu
+
+        choice APP_WIFI_CONNECT_AP_SORT_METHOD
+            prompt "WiFi Connect AP Sort Method"
+            default APP_WIFI_CONNECT_AP_BY_SIGNAL
+            help
+                WiFi connect AP sort method:
+
+                If "Signal" is selected, Sort matched APs in scan list by RSSI.
+	    
+                If "Security" is selected, Sort matched APs in scan list by security mode.
+	    
+            config APP_WIFI_CONNECT_AP_BY_SIGNAL
+                bool "Signal"
+            config APP_WIFI_CONNECT_AP_BY_SECURITY
+                bool "Security"
+        endchoice
+    endmenu
+    
+    menu "IP Configuration"
+        config APP_CONNECT_IPV4
+            bool
+            depends on LWIP_IPV4
+            default y
+	    
+        config APP_CONNECT_IPV6        
+            bool "Obtain IPv6 address"
+            default y
+            select LWIP_IPV6
+            help
+                By default the app will wait until IPv4 and IPv6 local link addresses are obtained.
+                Disable this option if the network does not support IPv6.
+                Choose the preferred IPv6 address type if the connection code should wait until other than
+                the local link address gets assigned.
+                Consider enabling IPv6 stateless address autoconfiguration (SLAAC) in the LWIP component.
+
+        if APP_CONNECT_IPV6
+        choice APP_CONNECT_PREFERRED_IPV6
+            prompt "Preferred IPv6 Type"
+            default APP_CONNECT_IPV6_PREF_LOCAL_LINK
+            help
+                Select which kind of IPv6 address the connect logic waits for.
+    
+            config APP_CONNECT_IPV6_PREF_LOCAL_LINK
+                bool "Local Link Address"
+                help
+                    Blocks until Local link address assigned.
+    
+            config APP_CONNECT_IPV6_PREF_GLOBAL
+                bool "Global Address"
+                help
+                    Blocks until Global address assigned.
+    
+            config APP_CONNECT_IPV6_PREF_SITE_LOCAL
+                bool "Site Local Address"
+                help
+                    Blocks until Site link address assigned.
+    
+            config APP_CONNECT_IPV6_PREF_UNIQUE_LOCAL
+                bool "Unique Local Link Address"
+                help
+                    Blocks until Unique local address assigned.    
+        endchoice	           
+        endif
+
+        config APP_IP_ENABLE_STATIC_IP
+            bool "enable static ip"
+            default y
+            help
+                Enable static IP
+        config APP_IP_STATIC_IP_ADDR
+            string "Static IP address"
+            default "192.168.178.201"
+            depends on APP_IP_ENABLE_STATIC_IP
+            help
+                Set static IP address.            
+        config APP_IP_STATIC_NETMASK_ADDR
+            string "Static netmask address"
+            default "255.255.255.0"
+            depends on APP_IP_ENABLE_STATIC_IP
+            help
+                Set static netmask address.            
+        config APP_IP_STATIC_GW_ADDR
+            string "Static gateway address"
+            default "192.168.178.1"
+            depends on APP_IP_ENABLE_STATIC_IP
+            help
+                Set static gateway address.
+    endmenu
+
+    menu "iTWT Configuration"
+        config APP_ITWT_ENABLE
+            bool "iTWT enabled"
+            default y
+            help
+                Enable iTWT. If iTWT works also depends on if PHY mode HE20 is supported by AP
+        config APP_ITWT_TRIGGER_ENABLE
+            bool "trigger-enabled"
+            default y
+            depends on APP_ITWT_ENABLE
+            help
+                0- a non-trigger-enabled TWT, 1-a trigger-enabled TWT
+        config APP_ITWT_ANNOUNCED
+            bool "announced"
+            default y
+            depends on APP_ITWT_ENABLE
+            help
+                0- an unannounced TWT, 1-an announced TWT
+        config APP_ITWT_MIN_WAKE_DURA
+            int "itwt minimum wake duration"
+            range 1 255
+            default 255
+            depends on APP_ITWT_ENABLE
+            help
+                Nominal Minimum Wake Duration, indicates the minimum amount of time, in unit of 256 us, that the TWT
+                requesting STA expects that it needs to be awake. The value range is [1, 255].
+        config APP_ITWT_WAKE_INVL_EXPN
+            int "itwt wake interval exponent"
+            range 0 31
+            default 9
+            depends on APP_ITWT_ENABLE
+            help
+                TWT Wake Interval Exponent, in microseconds. The value range is [0, 31].
+        config APP_ITWT_WAKE_INVL_MANT
+            int "itwt wake interval mantissa"
+            range 1 65535
+            default 58594
+            depends on APP_ITWT_ENABLE
+            help
+                TWT Wake Interval Mantissa, in microseconds. The value range is [1, 65535].
+        config APP_ITWT_ID
+            int "itwt connection id"
+            range 0 32767
+            default 0
+            depends on APP_ITWT_ENABLE
+            help
+                TWT Connection id. The value range is [0, 32767].
+        config APP_ITWT_SETUP_TIMEOUT_TIME_MS
+            int "TWT setup timeout in µSec"
+            range 100 65535
+            default 5000
+            depends on APP_ITWT_ENABLE
+            help
+                TWT setup timeout time, in microseconds. The value range is [100, 65535].
+        config APP_ITWT_ASUS_BUG_WORKAROUND
+            bool "iTWT ASUS AP bug workaround enabled"
+            default y
+            depends on APP_ITWT_ENABLE
+            help
+                Some access points do not support long sleep times "above 8min" and/or drop the connection earlier
+                than agreed between device and AP. To keep the connection status alive the device
+                needs to wake up an send an iTWT probe request. That consumes little power and 
+                keeps the connection alive.
+        config APP_ITWT_ASUS_BUG_INTERVAL 
+            int "ASUS AP deauthenticates interval in sec"
+            range 0 3600
+            default  300
+            depends on APP_ITWT_ASUS_BUG_WORKAROUND
+            help
+                Interval in sec when the device must wake up to send a probe request.                
+                
+    endmenu
+
+    menu "ESP-NOW application data"
+        config APP_ESPNOW_ENABLE
+            bool "ESP-NOW enabled"
+            default y
+            help
+                Enable ESP-NOW as method for providing sensor data to a peer device.
+        config APP_ESPNOW_PMK
+            string "ESPNOW primary master key"
+            default "pmk1234567890123"
+            help
+                ESPNOW primary master for the example to use. The length of ESPNOW primary master must be 16 bytes.        
+        config APP_ESPNOW_LMK
+            string "ESP-NOW local master key"
+            default "lmk1234567890123"
+            help
+                ESPNOW local master for the example to use. The length of ESPNOW local master must be 16 bytes.        
+        config APP_ESPNOW_CHANNEL
+            int "Channel"
+            default 1
+            range 0 14
+            help
+                The channel on which sending and receiving ESPNOW data.
+        config APP_ESPNOW_PEER_MAC
+            string "MAC address (hex) of peer device we report the sensor data to"
+            default "FF:FF:FF:FF:FF:FF"            
+            help
+                In ESP-Now mode the device will send the sensor data to this peer address.
+    endmenu
+
+    menu "Backend Configuration"
+        config APP_MQTT_BROKER_IP_ADR
+            string "MQTT Broker IP address"            
+            default "192.168.178.5"        
+            help
+                Local RaspiPy is usually 192.168.178.5. 1Blu server is 178.254.24.93 
+
+        config APP_MQTT_BROKER_IP_PORT
+             int "MQTT broker port"
+             range 0 65535
+             default 1883
+             help
+                 Standard MQTT port is 1883
+
+        config APP_MQTT_BROKER_USER_NAME
+            string "User name to access MQTT broker"
+            default "myUserName"
+            help
+                User name to connect to MQTT broker       
+                     
+        config APP_MQTT_BROKER_USER_PW
+            string "User password for MQTT broker access"
+            default "myPassword"
+            help
+                Password to access MQTT broker
+
+        config APP_MQTT_DEVICE_ID
+            string "Device ID for this device"
+            default "myMQTT_DeviceID"
+            help
+                Device ID to indentify device on MQTT broker 
+
+        config APP_MQTT_DEVICE_LOCATION
+            string "Device location"
+            default "Office"
+            help
+                Can be used to also add location to MQTT topic string for easy identification
+
+        choice APP_MQTT_QoS_SEL
+            prompt "Quality of Service (QoS) for messages to be send"
+            default APP_MQTT_QoS_1                
+            help
+                QoS_0: At most once 
+                
+                QoS_1: At least once
+                
+                QoS_2: Exactly once
+            config APP_MQTT_QoS_0
+                bool "QoS_0: At most once"
+            config APP_MQTT_QoS_1
+                bool "QoS_1: At least once"                    
+            config APP_MQTT_QoS_2
+                bool "QoS_2: Exactly once"                    
+        endchoice
+
+        config APP_MQTT_QoS
+        int
+        default 0 if APP_MQTT_QoS_0
+        default 1 if APP_MQTT_QoS_1
+        default 2 if APP_MQTT_QoS_2                
+    endmenu
+
+    
+
+endmenu

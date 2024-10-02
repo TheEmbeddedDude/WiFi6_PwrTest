@@ -1,0 +1,7 @@
+/.devcontainer
+/.vscode
+/build
+/README.md.bak
+/sdkconfig
+/sdkconfig.old
+/ToBeDeleted
